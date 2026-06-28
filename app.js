@@ -1,262 +1,314 @@
 /* ═══════════════════════════════════════════════════════════
-   CERRADÔ — JAVASCRIPT
-   • GIF controlado por scroll usando gifuct-js
-   • Scroll reveal com IntersectionObserver
-   • Navbar scroll + hamburger menu
-   • Progress bar de leitura
+   CERRADÔ — app.js  v3  (Apple-style frame-by-frame scroll)
+   ──────────────────────────────────────────────────────────
+   Técnica: 240 frames JPEG pré-carregados como Image objects,
+   exibidos em <canvas> conforme o scroll.
+   • Totalmente smooth — sem seek de codec
+   • Scroll ↓ → avança  |  Scroll ↑ → regride
+   • Lazy preload com prioridade progressiva
 ═══════════════════════════════════════════════════════════ */
 
 'use strict';
 
-/* ── PROGRESS BAR ────────────────────────────────────────── */
-const progressBar = document.createElement('div');
-progressBar.className = 'progress-bar';
-document.body.prepend(progressBar);
+/* ── CONFIGURAÇÃO ────────────────────────────────────────── */
+const TOTAL_FRAMES = 240;          // frames extraídos pelo FFmpeg
+const FRAME_PATH   = 'frames/frame_%04d.jpg'; // template de path
+const SCROLL_HEIGHT_VH = 400;      // altura da seção hero em vh
 
 /* ── REFS ────────────────────────────────────────────────── */
-const canvas      = document.getElementById('gifCanvas');
-const ctx         = canvas ? canvas.getContext('2d') : null;
+const canvas      = document.getElementById('heroCanvas');
+const ctx         = canvas ? canvas.getContext('2d', { alpha: false }) : null;
 const heroSection = document.getElementById('hero');
 const navbar      = document.getElementById('navbar');
 const scrollHint  = document.getElementById('scrollHint');
+const heroText    = document.getElementById('heroText');
+const progressBar = document.getElementById('progressBar');
+const loadingBar  = document.getElementById('loadingBar');
 
-/* ── GIF STATE ───────────────────────────────────────────── */
-let gifFrames     = [];   // Array of ImageData
-let gifLoaded     = false;
-let currentFrame  = -1;
-let offscreenCtx  = null; // for compositing
+/* ── ESTADO ──────────────────────────────────────────────── */
+const frames    = new Array(TOTAL_FRAMES).fill(null); // Image[]
+let loadedCount = 0;
+let currentIdx  = -1;
+let rafPending  = false;
 
-/* ═══════════════════════════════════════════════════════════
-   GIF LOADER — uses gifuct-js (loaded via CDN in HTML)
-   Falls back to plain <img> if library unavailable
-═══════════════════════════════════════════════════════════ */
+/* ── HELPERS ─────────────────────────────────────────────── */
+function padNum(n, len) {
+  return String(n).padStart(len, '0');
+}
 
-async function loadGif() {
-  if (!canvas || !ctx) return;
+function framePath(i) {
+  // i é 1-indexed (FFmpeg gera frame_0001.jpg … frame_0240.jpg)
+  return `frames/frame_${padNum(i + 1, 4)}.jpg`;
+}
 
-  // Show loading overlay on canvas
-  showCanvasPlaceholder();
-
-  try {
-    const response = await fetch('Untitled design.gif');
-    const buffer   = await response.arrayBuffer();
-
-    // gifuct-js global: window.gifuct or the named exports
-    const gifuctLib = window.gifuct || window['gifuct-js'];
-
-    let frames;
-    if (gifuctLib && gifuctLib.parseGIF && gifuctLib.decompressFrames) {
-      const parsed = gifuctLib.parseGIF(buffer);
-      frames = gifuctLib.decompressFrames(parsed, true);
-    } else if (window.parseGIF && window.decompressFrames) {
-      // Flat export style
-      const parsed = window.parseGIF(buffer);
-      frames = window.decompressFrames(parsed, true);
-    } else {
-      throw new Error('gifuct-js not found');
-    }
-
-    if (!frames || frames.length === 0) throw new Error('No frames decoded');
-
-    // Set canvas dimensions from first frame dims
-    const { dims } = frames[0];
-    const gifW = dims.width;
-    const gifH = dims.height;
-    canvas.width  = gifW;
-    canvas.height = gifH;
-
-    // Create offscreen canvas for compositing
-    const offscreen = document.createElement('canvas');
-    offscreen.width  = gifW;
-    offscreen.height = gifH;
-    offscreenCtx = offscreen.getContext('2d');
-
-    // Build composite ImageData for each frame (handle disposal)
-    const patchCanvas = document.createElement('canvas');
-    const patchCtx    = patchCanvas.getContext('2d');
-
-    let prevFrameData = null;
-
-    for (const frame of frames) {
-      const { dims: fd, disposalType, patch } = frame;
-
-      // Restore previous frame state based on disposal
-      if (prevFrameData) {
-        if (disposalType === 2) {
-          // Restore to background (clear patch area)
-          offscreenCtx.clearRect(fd.left, fd.top, fd.width, fd.height);
-        }
-        // disposalType 1 = leave in place (already on offscreen)
-        // disposalType 3 = restore to previous (more complex — skip for now)
-      }
-
-      // Draw patch onto offscreen
-      patchCanvas.width  = fd.width;
-      patchCanvas.height = fd.height;
-      const patchImageData = new ImageData(patch, fd.width, fd.height);
-      patchCtx.putImageData(patchImageData, 0, 0);
-      offscreenCtx.drawImage(patchCanvas, fd.left, fd.top);
-
-      // Capture composite
-      const compositeData = offscreenCtx.getImageData(0, 0, gifW, gifH);
-      gifFrames.push(new ImageData(
-        new Uint8ClampedArray(compositeData.data),
-        gifW,
-        gifH
-      ));
-
-      prevFrameData = compositeData;
-    }
-
-    gifLoaded = true;
-    drawFrame(0);
-
-    // Reveal hero text
-    document.querySelector('.hero-text')?.classList.add('visible');
-    console.log(`✅ GIF loaded: ${gifFrames.length} frames @ ${gifW}×${gifH}`);
-
-  } catch (err) {
-    console.warn('⚠️ GIF decode failed, using img fallback:', err);
-    useFallbackGif();
+/* ── CANVAS RESIZE ───────────────────────────────────────── */
+function resizeCanvas() {
+  if (!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  // Redesenha o frame atual após resize
+  if (currentIdx >= 0 && frames[currentIdx]) {
+    drawFrame(currentIdx);
   }
 }
 
-function showCanvasPlaceholder() {
+/* ── DESENHA FRAME ───────────────────────────────────────── */
+function drawFrame(idx) {
+  if (!ctx || !canvas) return;
+  const img = frames[idx];
+  if (!img || !img.complete) return;
+
+  const cw = canvas.width,  ch = canvas.height;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const scale = Math.max(cw / iw, ch / ih);
+  const sw = iw * scale, sh = ih * scale;
+  const dx = (cw - sw) / 2, dy = (ch - sh) / 2;
+
+  ctx.drawImage(img, dx, dy, sw, sh);
+  currentIdx = idx;
+}
+
+/* ── PROGRESSO HERO ──────────────────────────────────────── */
+function getHeroProgress() {
+  if (!heroSection) return 0;
+  const range = heroSection.offsetHeight - window.innerHeight;
+  if (range <= 0) return 0;
+  return Math.max(0, Math.min(1, (window.scrollY - heroSection.offsetTop) / range));
+}
+
+/* ── ATUALIZA FRAME NO SCROLL ────────────────────────────── */
+function updateFrame() {
+  rafPending = false;
+  const progress = getHeroProgress();
+  const rawIdx   = Math.round(progress * (TOTAL_FRAMES - 1));
+
+  if (rawIdx === currentIdx) return;
+
+  // Se o frame alvo estiver pronto, usa ele diretamente
+  if (frames[rawIdx]?.complete) {
+    drawFrame(rawIdx);
+    return;
+  }
+
+  // Fallback: busca o frame carregado mais próximo (evita tela em branco)
+  let best = -1, bestDist = Infinity;
+  for (let i = 0; i < TOTAL_FRAMES; i++) {
+    if (frames[i]?.complete) {
+      const d = Math.abs(i - rawIdx);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+  }
+  if (best >= 0) drawFrame(best);
+}
+
+function scheduleFrameUpdate() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(updateFrame);
+}
+
+/* ── PRELOAD DE FRAMES ───────────────────────────────────── */
+/**
+ * Estratégia de carregamento em 3 passes:
+ *  1. Frames-chave: 0, 30, 60, 90, 120, 150, 180, 210, 239
+ *     → garante que a animação fique interativa rapidamente
+ *  2. Todos os frames pares (x2 da fluidez)
+ *  3. Frames ímpares restantes
+ */
+function preloadFrames() {
+  if (!canvas) return;
+
+  // Exibe placeholder enquanto carrega
+  showPlaceholder();
+
+  const keyframes = [0, 30, 60, 90, 120, 150, 180, 210, 239];
+  const allIndices = Array.from({ length: TOTAL_FRAMES }, (_, i) => i);
+
+  // Ordem de prioridade: keyframes → pares → ímpares
+  const evens  = allIndices.filter(i => i % 2 === 0 && !keyframes.includes(i));
+  const odds   = allIndices.filter(i => i % 2 !== 0);
+  const order  = [...keyframes, ...evens, ...odds];
+
+  let queueIdx = 0;
+  const CONCURRENT = 6; // downloads paralelos
+
+  function loadNext() {
+    if (queueIdx >= order.length) return;
+    const frameIdx = order[queueIdx++];
+    const img = new Image();
+
+    img.onload = () => {
+      loadedCount++;
+      frames[frameIdx] = img;
+
+      // Atualiza barra de loading
+      if (loadingBar) {
+        loadingBar.style.width = (loadedCount / TOTAL_FRAMES * 100) + '%';
+      }
+
+      // Assim que o frame 0 estiver pronto, exibe e revela o texto
+      if (frameIdx === 0 && loadedCount === 1) {
+        resizeCanvas();
+        drawFrame(0);
+        heroText?.classList.add('visible');
+        hidePlaceholder();
+        scheduleFrameUpdate();
+      }
+
+      // Redispara update para preencher frames que faltavam
+      scheduleFrameUpdate();
+
+      // Esconde loading quando todos carregarem
+      if (loadedCount === TOTAL_FRAMES) {
+        hideLoading();
+      }
+
+      loadNext();
+    };
+
+    img.onerror = () => {
+      loadedCount++;
+      loadNext();
+    };
+
+    img.src = framePath(frameIdx);
+    frames[frameIdx] = img;
+  }
+
+  // Inicia os downloads concorrentes
+  for (let i = 0; i < CONCURRENT; i++) loadNext();
+}
+
+/* ── PLACEHOLDER / LOADING UI ────────────────────────────── */
+function showPlaceholder() {
   if (!ctx || !canvas) return;
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
-  // Draw dark green gradient as placeholder
   const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   grad.addColorStop(0, '#1B4332');
-  grad.addColorStop(1, '#2D6A4F');
+  grad.addColorStop(0.5, '#2D6A4F');
+  grad.addColorStop(1, '#1B4332');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function useFallbackGif() {
-  if (!canvas) return;
-  // Hide canvas, show animated gif as img
-  canvas.style.display = 'none';
-  const img = document.createElement('img');
-  img.src = 'Untitled design.gif';
-  img.alt = 'Cerradô';
-  img.style.cssText = `
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-  `;
-  canvas.parentElement.prepend(img);
-  document.querySelector('.hero-text')?.classList.add('visible');
+function hidePlaceholder() {
+  // noop — o frame 0 já substituiu o placeholder
 }
 
-/* ── DRAW FRAME ──────────────────────────────────────────── */
-function drawFrame(rawIndex) {
-  if (!gifLoaded || !ctx || gifFrames.length === 0) return;
-  const index = Math.max(0, Math.min(gifFrames.length - 1, Math.round(rawIndex)));
-  if (index === currentFrame) return;
-  currentFrame = index;
-  ctx.putImageData(gifFrames[index], 0, 0);
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 600); }
 }
 
-/* ── SCROLL → FRAME MAPPING ──────────────────────────────── */
-function getHeroProgress() {
-  if (!heroSection) return 0;
-  const scrollTop  = window.scrollY;
-  const heroTop    = heroSection.offsetTop;
-  const heroHeight = heroSection.offsetHeight;
-  const scrollable = heroHeight - window.innerHeight;
-  if (scrollable <= 0) return 0;
-  return Math.max(0, Math.min(1, (scrollTop - heroTop) / scrollable));
-}
-
-/* ── MAIN SCROLL HANDLER ─────────────────────────────────── */
+/* ── SCROLL HANDLER ──────────────────────────────────────── */
 function onScroll() {
-  // Progress bar
-  const docH    = document.documentElement.scrollHeight - window.innerHeight;
-  const pct     = docH > 0 ? (window.scrollY / docH) * 100 : 0;
-  progressBar.style.width = pct + '%';
-
-  // Navbar
-  if (navbar) {
-    navbar.classList.toggle('scrolled', window.scrollY > 60);
+  /* Progress bar */
+  if (progressBar) {
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    progressBar.style.width = (docH > 0 ? (window.scrollY / docH) * 100 : 0) + '%';
   }
 
-  // Scroll hint fade
-  if (scrollHint) {
-    scrollHint.style.opacity = window.scrollY > 80 ? '0' : '1';
-  }
+  /* Navbar */
+  navbar?.classList.toggle('scrolled', window.scrollY > 60);
 
-  // GIF frame
-  if (gifLoaded && gifFrames.length > 0) {
-    const progress = getHeroProgress();
-    drawFrame(progress * (gifFrames.length - 1));
-  }
+  /* Scroll hint */
+  if (scrollHint) scrollHint.style.opacity = window.scrollY > 80 ? '0' : '1';
+
+  /* Frame update */
+  scheduleFrameUpdate();
+
+  /* Botão voltar ao topo */
+  updateBackToTop();
+}
+
+/* ── CONTADORES ANIMADOS ─────────────────────────────────── */
+function animateCounters() {
+  document.querySelectorAll('.stat-number').forEach(el => {
+    const text  = el.dataset.value || el.textContent.trim();
+    el.dataset.value = text;
+    const match = text.match(/([+]?)(\d+)([k%+]?)/);
+    if (!match) return;
+    const prefix = match[1], end = parseInt(match[2]), suffix = match[3];
+    const start  = performance.now(), dur = 1800;
+    const tick   = (now) => {
+      const p = Math.min((now - start) / dur, 1);
+      const e = 1 - Math.pow(2, -10 * p); // easeOutExpo
+      el.textContent = prefix + Math.floor(e * end) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+const impactoSection = document.getElementById('impacto');
+if (impactoSection) {
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) { animateCounters(); }
+  }, { threshold: 0.4 }).observe(impactoSection);
 }
 
 /* ── SCROLL REVEAL ───────────────────────────────────────── */
-const revealObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-    }
-  });
-}, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' });
+const revealObs = new IntersectionObserver(
+  (entries) => entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  }),
+  { threshold: 0.12, rootMargin: '0px 0px -50px 0px' }
+);
+document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right')
+  .forEach(el => revealObs.observe(el));
 
-document.querySelectorAll(
-  '.reveal-up, .reveal-left, .reveal-right, .reveal-hero'
-).forEach(el => revealObserver.observe(el));
+/* ── BOTÃO VOLTAR AO TOPO — BURITI ──────────────────────── */
+const backToTopBtn = document.getElementById('backToTop');
 
-/* ── HAMBURGER MENU ──────────────────────────────────────── */
-const hamburger = document.getElementById('hamburger');
-let menuOpen = false;
-if (hamburger) {
-  hamburger.addEventListener('click', () => {
-    menuOpen = !menuOpen;
-    const navLinks = document.querySelector('.nav-links');
-    if (!navLinks) return;
-    if (menuOpen) {
-      navLinks.style.display    = 'flex';
-      navLinks.style.position   = 'absolute';
-      navLinks.style.top        = '100%';
-      navLinks.style.left       = '0';
-      navLinks.style.right      = '0';
-      navLinks.style.flexDirection = 'column';
-      navLinks.style.background = 'rgba(27,67,50,0.98)';
-      navLinks.style.padding    = '1.5rem 2rem';
-      navLinks.style.gap        = '1.2rem';
-      navLinks.style.backdropFilter = 'blur(20px)';
-    } else {
-      navLinks.style.display = 'none';
-    }
-  });
+function updateBackToTop() {
+  if (!backToTopBtn) return;
+  // Aparece após 300px de scroll (quando o hero já passou)
+  if (window.scrollY > 300) {
+    backToTopBtn.classList.add('visible');
+  } else {
+    backToTopBtn.classList.remove('visible');
+  }
 }
 
-/* ── SMOOTH ANCHOR SCROLLING ─────────────────────────────── */
+backToTopBtn?.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ── HAMBURGER ───────────────────────────────────────────── */
+const hamburger = document.getElementById('hamburger');
+const navLinks  = document.getElementById('navLinks');
+let menuOpen = false;
+hamburger?.addEventListener('click', () => {
+  menuOpen = !menuOpen;
+  if (!navLinks) return;
+  if (menuOpen) {
+    Object.assign(navLinks.style, {
+      display: 'flex', position: 'absolute',
+      top: '100%', left: '0', right: '0',
+      flexDirection: 'column',
+      background: 'rgba(27,67,50,0.97)',
+      padding: '1.5rem 2rem', gap: '1.25rem',
+      backdropFilter: 'blur(20px)',
+    });
+  } else {
+    navLinks.style.display = 'none';
+  }
+});
+
+/* ── SMOOTH ANCHORS ──────────────────────────────────────── */
 document.querySelectorAll('a[href^="#"]').forEach(link => {
   link.addEventListener('click', e => {
     const target = document.querySelector(link.getAttribute('href'));
-    if (target) {
-      e.preventDefault();
-      menuOpen = false;
-      const navLinks = document.querySelector('.nav-links');
-      if (navLinks && window.innerWidth < 768) {
-        navLinks.style.display = 'none';
-      }
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (!target) return;
+    e.preventDefault();
+    if (menuOpen && navLinks) { navLinks.style.display = 'none'; menuOpen = false; }
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 });
 
-/* ── INIT ────────────────────────────────────────────────── */
+/* ── INICIALIZAÇÃO ───────────────────────────────────────── */
 window.addEventListener('scroll', onScroll, { passive: true });
-onScroll(); // Initial call
-
-// Load GIF after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadGif);
-} else {
-  loadGif();
-}
+window.addEventListener('resize', () => { resizeCanvas(); scheduleFrameUpdate(); });
+onScroll();
+preloadFrames();

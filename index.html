@@ -1,26 +1,34 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Cerradô — Bebidas lácteas artesanais com sabores autênticos do Cerrado brasileiro. Buriti, Mangaba e Cupuaçu. O sabor que regenera." />
+  <meta name="description"
+    content="Cerradô — Bebidas lácteas artesanais com sabores autênticos do Cerrado brasileiro. Buriti, Mangaba e Cupuaçu. O sabor que regenera." />
   <title>Cerradô — O Sabor que Regenera</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;600;700;900&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;600;700;900&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-  <!-- ═══════════════════════════════════════════
+  <!-- PROGRESS BAR -->
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- ═══════════════════════════════════════
        NAVBAR
-  ═══════════════════════════════════════════ -->
+  ═══════════════════════════════════════ -->
   <nav class="navbar" id="navbar">
     <div class="nav-inner">
       <a href="#hero" class="nav-logo">
         <span class="logo-cer">CER</span><span class="logo-ra">RA</span><span class="logo-do">DÔ</span>
       </a>
-      <ul class="nav-links">
+      <ul class="nav-links" id="navLinks">
         <li><a href="#sobre">Sobre</a></li>
         <li><a href="#missao">Missão</a></li>
         <li><a href="#sabores">Sabores</a></li>
@@ -33,15 +41,31 @@
     </div>
   </nav>
 
-  <!-- ═══════════════════════════════════════════
-       HERO — GIF CONTROLADO POR SCROLL
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       HERO — FRAMES CONTROLADOS POR SCROLL (Apple-style)
+  ═══════════════════════════════════════ -->
   <section class="hero-scroll-section" id="hero">
     <div class="hero-sticky">
-      <div class="gif-container">
-        <canvas id="gifCanvas"></canvas>
+      <div class="video-container">
+
+        <!-- Canvas exibe os frames JPEG sincronizados com o scroll -->
+        <canvas id="heroCanvas"></canvas>
+
+        <!-- Loading overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+          <div class="loading-inner">
+            <div class="loading-logo">
+              <span class="logo-cer">CER</span><span class="logo-ra">RA</span><span class="logo-do">DÔ</span>
+            </div>
+            <div class="loading-track">
+              <div class="loading-fill" id="loadingBar"></div>
+            </div>
+            <span class="loading-text">Carregando experiência...</span>
+          </div>
+        </div>
+
         <div class="hero-overlay">
-          <div class="hero-text reveal-hero">
+          <div class="hero-text" id="heroText">
             <p class="hero-tagline">Bebida Láctea Artesanal</p>
             <h1 class="hero-title">
               <span class="logo-cer">CER</span><span class="logo-ra">RA</span><span class="logo-do">DÔ</span>
@@ -52,6 +76,7 @@
               <a href="#sobre" class="btn-ghost">Nossa História</a>
             </div>
           </div>
+
           <div class="scroll-hint" id="scrollHint">
             <span>Role para descobrir</span>
             <div class="scroll-arrow"></div>
@@ -61,31 +86,29 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
-       SEÇÃO: SOBRE
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       SOBRE
+  ═══════════════════════════════════════ -->
   <section class="section section-sobre" id="sobre">
     <div class="container">
       <div class="sobre-grid">
         <div class="sobre-text reveal-up">
           <p class="section-label">Do Cerrado para a sua mesa</p>
-          <h2 class="section-title">Feito com o que a <span class="highlight-green">natureza</span> oferece de <span class="highlight-orange">melhor</span></h2>
-          <p class="body-text">A Cerradô nasce da paixão pelos sabores únicos e esquecidos do cerrado brasileiro — um dos biomas mais ricos e ameaçados do planeta. Cada garrafa é uma homenagem às frutas nativas, colhidas com cuidado por comunidades locais.</p>
-          <p class="body-text">Nossa bebida láctea fermentada combina o sabor autêntico do buriti, da mangaba e do cupuaçu com técnicas artesanais que preservam todos os nutrientes e o aroma inconfundível das frutas do cerrado.</p>
-          <p class="body-text">A Cerradô acredita que a valorização da biodiversidade começa no prato — e na garrafa. Por isso, parte de cada venda é destinada à preservação do bioma e ao fortalecimento das famílias agricultoras.</p>
+          <h2 class="section-title">Feito com o que a <span class="highlight-green">natureza</span> oferece de <span
+              class="highlight-orange">melhor</span></h2>
+          <p class="body-text">A Cerradô nasce da paixão pelos sabores únicos e esquecidos do cerrado brasileiro — um
+            dos biomas mais ricos e ameaçados do planeta. Cada garrafa é uma homenagem às frutas nativas, colhidas com
+            cuidado por comunidades locais.</p>
+          <p class="body-text">Nossa bebida láctea fermentada combina o sabor autêntico do buriti, da mangaba e do
+            cupuaçu com técnicas artesanais que preservam todos os nutrientes e o aroma inconfundível das frutas do
+            cerrado.</p>
+          <p class="body-text">A Cerradô acredita que a valorização da biodiversidade começa no prato — e na garrafa.
+            Por isso, parte de cada venda é destinada à preservação do bioma e ao fortalecimento das famílias
+            agricultoras.</p>
           <div class="sobre-badges">
-            <div class="badge">
-              <span class="badge-icon">🌿</span>
-              <span>Frutas Nativas</span>
-            </div>
-            <div class="badge">
-              <span class="badge-icon">🤝</span>
-              <span>Agricultura Familiar</span>
-            </div>
-            <div class="badge">
-              <span class="badge-icon">♻️</span>
-              <span>Sem Conservantes</span>
-            </div>
+            <div class="badge"><span class="badge-icon">🌿</span><span>Frutas Nativas</span></div>
+            <div class="badge"><span class="badge-icon">🤝</span><span>Agricultura Familiar</span></div>
+            <div class="badge"><span class="badge-icon">♻️</span><span>Sem Conservantes</span></div>
           </div>
         </div>
         <div class="sobre-image reveal-right">
@@ -98,20 +121,24 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
-       SEÇÃO: MISSÃO
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       MISSÃO
+  ═══════════════════════════════════════ -->
   <section class="section section-missao" id="missao">
     <div class="missao-bg-image">
-      <img src="5.png" alt="Cerradô Buriti sunset" />
+      <img src="5.png" alt="Cerradô Buriti ao pôr do sol" />
     </div>
     <div class="missao-overlay"></div>
     <div class="container missao-content">
       <div class="missao-card reveal-up">
         <p class="section-label light">Nossa Missão</p>
-        <h2 class="section-title light">Regenerar o cerrado, <br/><span class="highlight-yellow">um gole por vez</span></h2>
-        <p class="body-text light">Somos uma empresa de impacto que conecta o campo à cidade, valorizando os sabores originais do cerrado e gerando renda para quem cuida da terra. Nossa missão é provar que o desenvolvimento sustentável e o prazer andam juntos.</p>
-        <p class="body-text light">Com cada compra, você apoia diretamente as comunidades do cerrado e contribui para a preservação do segundo maior bioma da América do Sul.</p>
+        <h2 class="section-title light">Regenerar o cerrado, <br /><span class="highlight-yellow">um gole por vez</span>
+        </h2>
+        <p class="body-text light">Somos uma empresa de impacto que conecta o campo à cidade, valorizando os sabores
+          originais do cerrado e gerando renda para quem cuida da terra. Nossa missão é provar que o desenvolvimento
+          sustentável e o prazer andam juntos.</p>
+        <p class="body-text light">Com cada compra, você apoia diretamente as comunidades do cerrado e contribui para a
+          preservação do segundo maior bioma da América do Sul.</p>
         <div class="missao-actions">
           <a href="#sabores" class="btn-primary">Ver Sabores</a>
           <a href="#impacto" class="btn-ghost light">Ver Impacto</a>
@@ -120,88 +147,117 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
-       SEÇÃO: SABORES
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       SABORES — CARDS COM FOTOS INDIVIDUAIS
+  ═══════════════════════════════════════ -->
   <section class="section section-sabores" id="sabores">
     <div class="container">
       <div class="sabores-header reveal-up">
         <p class="section-label">Bebidas Lácteas Artesanais</p>
         <h2 class="section-title">Três sabores, <span class="highlight-orange">uma essência</span></h2>
-        <p class="section-subtitle">Descubra as nossas bebidas lácteas fermentadas com preparado de fruta, feitas com o melhor do cerrado.</p>
+        <p class="section-subtitle">Descubra nossas bebidas lácteas fermentadas com preparado de fruta, feitas com o
+          melhor do cerrado.</p>
       </div>
 
+      <!-- Banner panorâmico com as 3 garrafas -->
       <div class="sabores-banner reveal-up">
-        <img src="4.png" alt="Cerradô — Buriti, Mangaba e Cupuaçu" class="sabores-full-img" loading="lazy" />
+        <img src="4.png" alt="Cerradô — Buriti, Mangaba e Cupuaçu" loading="lazy" />
       </div>
 
+      <!-- Cards individuais -->
       <div class="sabores-cards">
+
+        <!-- BURITI -->
         <article class="sabor-card reveal-up" id="card-buriti">
-          <div class="sabor-card-top buriti-bg">
-            <div class="sabor-fruta-label">MELO</div>
-            <h3 class="sabor-name">Buriti</h3>
-            <p class="sabor-desc-top">Naturalmente do Cerrado</p>
+          <div class="sabor-photo buriti-photo">
+            <img src="buriti.png" alt="Cerradô Sabor Buriti — Bebida Láctea 850g" />
+            <div class="sabor-photo-tag buriti-tag">BURITI</div>
           </div>
           <div class="sabor-card-body">
-            <p class="sabor-desc">O buriti é o "ouro do cerrado". Rico em betacaroteno, vitamina C e antioxidantes, ele dá à nossa bebida uma cor dourada vibrante e um sabor adocicado e cremoso, único no mundo.</p>
+            <div class="sabor-header">
+              <div>
+                <span class="sabor-label">Sabor</span>
+                <h3 class="sabor-name buriti-color">Buriti</h3>
+              </div>
+              <span class="sabor-size">850g</span>
+            </div>
+            <p class="sabor-desc">O "ouro do cerrado". Rico em betacaroteno e vitamina C, oferece cor dourada vibrante e
+              sabor adocicado e cremoso, único no mundo.</p>
             <ul class="sabor-features">
-              <li>🍊 Rico em betacaroteno</li>
-              <li>💪 Alto valor nutricional</li>
-              <li>🌿 Colheita sustentável</li>
+              <li><span class="feat-dot buriti-dot"></span>Rico em betacaroteno</li>
+              <li><span class="feat-dot buriti-dot"></span>Alto valor nutricional</li>
+              <li><span class="feat-dot buriti-dot"></span>Colheita sustentável</li>
             </ul>
             <div class="sabor-footer">
-              <span class="sabor-size">850g</span>
-              <span class="sabor-tag">Bebida Láctea Fermentada</span>
+              <span class="sabor-origin">🌿 Naturalmente do Cerrado</span>
+              <span class="sabor-type">Bebida Láctea Fermentada</span>
             </div>
           </div>
         </article>
 
+        <!-- MANGABA -->
         <article class="sabor-card reveal-up delay-1" id="card-mangaba">
-          <div class="sabor-card-top mangaba-bg">
-            <div class="sabor-fruta-label">FRUTA</div>
-            <h3 class="sabor-name">Mangaba</h3>
-            <p class="sabor-desc-top">Naturalmente do Cerrado</p>
+          <div class="sabor-photo mangaba-photo">
+            <img src="mangaba.png" alt="Cerradô Sabor Mangaba — Bebida Láctea 850g" />
+            <div class="sabor-photo-tag mangaba-tag">MANGABA</div>
           </div>
           <div class="sabor-card-body">
-            <p class="sabor-desc">A mangaba encanta pelo sabor agridoce e pela textura suave. Presente nas lendas indígenas como "coisa boa de comer", ela transforma nossa bebida em uma experiência sensorial inconfundível.</p>
+            <div class="sabor-header">
+              <div>
+                <span class="sabor-label">Sabor</span>
+                <h3 class="sabor-name mangaba-color">Mangaba</h3>
+              </div>
+              <span class="sabor-size">850g</span>
+            </div>
+            <p class="sabor-desc">A fruta que os indígenas chamam de "coisa boa de comer". Sabor agridoce inconfundível
+              que transforma cada gole em experiência sensorial.</p>
             <ul class="sabor-features">
-              <li>🍓 Sabor agridoce único</li>
-              <li>🛡️ Propriedades antifúngicas</li>
-              <li>🌺 Fruta nativa ameaçada</li>
+              <li><span class="feat-dot mangaba-dot"></span>Sabor agridoce único</li>
+              <li><span class="feat-dot mangaba-dot"></span>Propriedades antifúngicas</li>
+              <li><span class="feat-dot mangaba-dot"></span>Fruta nativa ameaçada</li>
             </ul>
             <div class="sabor-footer">
-              <span class="sabor-size">850g</span>
-              <span class="sabor-tag">Bebida Láctea Fermentada</span>
+              <span class="sabor-origin">🌿 Naturalmente do Cerrado</span>
+              <span class="sabor-type">Bebida Láctea Fermentada</span>
             </div>
           </div>
         </article>
 
+        <!-- CUPUAÇU -->
         <article class="sabor-card reveal-up delay-2" id="card-cupuacu">
-          <div class="sabor-card-top cupuacu-bg">
-            <div class="sabor-fruta-label">EXÓTICO</div>
-            <h3 class="sabor-name">Cupuaçu</h3>
-            <p class="sabor-desc-top">Naturalmente do Cerrado</p>
+          <div class="sabor-photo cupuacu-photo">
+            <img src="cupuacu.png" alt="Cerradô Sabor Cupuaçu — Bebida Láctea 850g" />
+            <div class="sabor-photo-tag cupuacu-tag">CUPUAÇU</div>
           </div>
           <div class="sabor-card-body">
-            <p class="sabor-desc">O cupuaçu é o "tesouro amazônico" que chegou ao cerrado. Com notas que lembram chocolate branco e frutas tropicais, ele proporciona uma bebida cremosa e com aroma inigualável.</p>
+            <div class="sabor-header">
+              <div>
+                <span class="sabor-label">Sabor</span>
+                <h3 class="sabor-name cupuacu-color">Cupuaçu</h3>
+              </div>
+              <span class="sabor-size">850g</span>
+            </div>
+            <p class="sabor-desc">O "tesouro amazônico" com notas de chocolate branco e frutas tropicais. Cremoso e com
+              aroma inigualável que conquista ao primeiro gole.</p>
             <ul class="sabor-features">
-              <li>🍫 Notas de chocolate</li>
-              <li>⚡ Rico em teobrominol</li>
-              <li>🌳 Fruta da floresta</li>
+              <li><span class="feat-dot cupuacu-dot"></span>Notas de chocolate</li>
+              <li><span class="feat-dot cupuacu-dot"></span>Rico em teobrominol</li>
+              <li><span class="feat-dot cupuacu-dot"></span>Fruta da floresta</li>
             </ul>
             <div class="sabor-footer">
-              <span class="sabor-size">850g</span>
-              <span class="sabor-tag">Bebida Láctea Fermentada</span>
+              <span class="sabor-origin">🌿 Naturalmente do Cerrado</span>
+              <span class="sabor-type">Bebida Láctea Fermentada</span>
             </div>
           </div>
         </article>
+
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
-       SEÇÃO: GALERIA
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       GALERIA
+  ═══════════════════════════════════════ -->
   <section class="section section-galeria">
     <div class="container">
       <div class="galeria-grid reveal-up">
@@ -209,29 +265,33 @@
           <img src="3.png" alt="Cerradô Buriti — O sabor que regenera" loading="lazy" />
           <div class="galeria-label">Sabor Buriti</div>
         </div>
-        <div class="galeria-item">
-          <img src="5.png" alt="Cerradô Buriti ao pôr do sol" loading="lazy" />
-          <div class="galeria-label">Do campo para você</div>
-        </div>
-        <div class="galeria-item">
-          <img src="4.png" alt="Linha Completa Cerradô" loading="lazy" />
-          <div class="galeria-label">Linha Completa</div>
+        <div class="galeria-col">
+          <div class="galeria-item">
+            <img src="5.png" alt="Cerradô Buriti ao pôr do sol" loading="lazy" />
+            <div class="galeria-label">Do campo para você</div>
+          </div>
+          <div class="galeria-item">
+            <img src="4.png" alt="Linha Completa Cerradô" loading="lazy" />
+            <div class="galeria-label">Linha Completa</div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
-       SEÇÃO: IMPACTO
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       IMPACTO
+  ═══════════════════════════════════════ -->
   <section class="section section-impacto" id="impacto">
     <div class="container">
       <div class="impacto-grid">
         <div class="impacto-text reveal-left">
           <p class="section-label light">Impacto que ecoa</p>
           <h2 class="section-title light">Cada garrafa conta <span class="highlight-yellow">uma história</span></h2>
-          <p class="body-text light">A Cerradô não é apenas uma bebida — é um movimento. Cada garrafa vendida fortalece comunidades locais, preserva o bioma e prova que o consumo consciente pode transformar o mundo.</p>
-          <p class="body-text light">Trabalhamos com 50+ famílias agricultoras, promovemos colheita sustentável e destinamos parte da receita à recuperação de áreas degradadas do cerrado.</p>
+          <p class="body-text light">A Cerradô não é apenas uma bebida — é um movimento. Cada garrafa vendida fortalece
+            comunidades locais, preserva o bioma e prova que o consumo consciente transforma o mundo.</p>
+          <p class="body-text light">Trabalhamos com 50+ famílias agricultoras, promovemos colheita sustentável e
+            destinamos parte da receita à recuperação de áreas degradadas do cerrado.</p>
           <a href="#sobre" class="btn-primary" style="margin-top:2rem;display:inline-block;">Saiba Mais</a>
         </div>
         <div class="impacto-stats reveal-right">
@@ -256,16 +316,16 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
-       SEÇÃO: CTA FINAL
-  ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════
+       CTA FINAL
+  ═══════════════════════════════════════ -->
   <section class="section section-cta reveal-up">
     <div class="container cta-content">
       <div class="cta-logo-mark">
         <img src="7.png" alt="Cerradô" />
       </div>
       <h2 class="cta-title">Pronto para provar o sabor <span class="highlight-orange">que regenera</span>?</h2>
-      <p class="cta-sub">Feito com o que a natureza oferece de melhor. Pedido mínimo de 1 unidade.</p>
+      <p class="cta-sub">Feito com o que a natureza oferece de melhor. 850g de cerrado em cada garrafa.</p>
       <div class="cta-actions">
         <a href="#sabores" class="btn-primary btn-lg">Pedir Agora</a>
         <a href="#sobre" class="btn-ghost btn-lg">Conhecer a Marca</a>
@@ -273,9 +333,9 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════
+  <!-- ═══════════════════════════════════════
        FOOTER
-  ═══════════════════════════════════════════ -->
+  ═══════════════════════════════════════ -->
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
@@ -293,9 +353,22 @@
       </div>
     </div>
   </footer>
+  <!-- ═══════════════════════════════════════
+       BOTÃO VOLTAR AO TOPO — Buriti
+  ═══════════════════════════════════════ -->
+  <button class="back-to-top" id="backToTop" aria-label="Voltar ao topo" title="Voltar ao topo">
+    <div class="btt-buriti">
+      <img src="Untitled design (2).png" alt="Buriti" />
+    </div>
+    <div class="btt-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+        stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"></polyline>
+      </svg>
+    </div>
+  </button>
 
-  <!-- gifuct-js: GIF frame decoder -->
-  <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.min.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>
