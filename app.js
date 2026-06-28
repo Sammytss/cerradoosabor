@@ -12,24 +12,24 @@
 
 /* ── CONFIGURAÇÃO ────────────────────────────────────────── */
 const TOTAL_FRAMES = 240;          // frames extraídos pelo FFmpeg
-const FRAME_PATH   = 'frames/frame_%04d.jpg'; // template de path
+const FRAME_PATH = 'frames/frame_%04d.jpg'; // template de path
 const SCROLL_HEIGHT_VH = 400;      // altura da seção hero em vh
 
 /* ── REFS ────────────────────────────────────────────────── */
-const canvas      = document.getElementById('heroCanvas');
-const ctx         = canvas ? canvas.getContext('2d', { alpha: false }) : null;
+const canvas = document.getElementById('heroCanvas');
+const ctx = canvas ? canvas.getContext('2d', { alpha: false }) : null;
 const heroSection = document.getElementById('hero');
-const navbar      = document.getElementById('navbar');
-const scrollHint  = document.getElementById('scrollHint');
-const heroText    = document.getElementById('heroText');
+const navbar = document.getElementById('navbar');
+const scrollHint = document.getElementById('scrollHint');
+const heroText = document.getElementById('heroText');
 const progressBar = document.getElementById('progressBar');
-const loadingBar  = document.getElementById('loadingBar');
+const loadingBar = document.getElementById('loadingBar');
 
 /* ── ESTADO ──────────────────────────────────────────────── */
-const frames    = new Array(TOTAL_FRAMES).fill(null); // Image[]
+const frames = new Array(TOTAL_FRAMES).fill(null); // Image[]
 let loadedCount = 0;
-let currentIdx  = -1;
-let rafPending  = false;
+let currentIdx = -1;
+let rafPending = false;
 
 /* ── HELPERS ─────────────────────────────────────────────── */
 function padNum(n, len) {
@@ -44,7 +44,7 @@ function framePath(i) {
 /* ── CANVAS RESIZE ───────────────────────────────────────── */
 function resizeCanvas() {
   if (!canvas) return;
-  canvas.width  = window.innerWidth;
+  canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   // Redesenha o frame atual após resize
   if (currentIdx >= 0 && frames[currentIdx]) {
@@ -58,7 +58,7 @@ function drawFrame(idx) {
   const img = frames[idx];
   if (!img || !img.complete) return;
 
-  const cw = canvas.width,  ch = canvas.height;
+  const cw = canvas.width, ch = canvas.height;
   const iw = img.naturalWidth, ih = img.naturalHeight;
   const scale = Math.max(cw / iw, ch / ih);
   const sw = iw * scale, sh = ih * scale;
@@ -80,7 +80,7 @@ function getHeroProgress() {
 function updateFrame() {
   rafPending = false;
   const progress = getHeroProgress();
-  const rawIdx   = Math.round(progress * (TOTAL_FRAMES - 1));
+  const rawIdx = Math.round(progress * (TOTAL_FRAMES - 1));
 
   if (rawIdx === currentIdx) return;
 
@@ -125,12 +125,14 @@ function preloadFrames() {
   const allIndices = Array.from({ length: TOTAL_FRAMES }, (_, i) => i);
 
   // Ordem de prioridade: keyframes → pares → ímpares
-  const evens  = allIndices.filter(i => i % 2 === 0 && !keyframes.includes(i));
-  const odds   = allIndices.filter(i => i % 2 !== 0);
-  const order  = [...keyframes, ...evens, ...odds];
+  const evens = allIndices.filter(i => i % 2 === 0 && !keyframes.includes(i));
+  const odds = allIndices.filter(i => i % 2 !== 0);
+  const order = [...keyframes, ...evens, ...odds];
 
   let queueIdx = 0;
   const CONCURRENT = 6; // downloads paralelos
+
+  let heroRevealed = false; // flag para revelar o hero só uma vez
 
   function loadNext() {
     if (queueIdx >= order.length) return;
@@ -146,22 +148,21 @@ function preloadFrames() {
         loadingBar.style.width = (loadedCount / TOTAL_FRAMES * 100) + '%';
       }
 
-      // Assim que o frame 0 estiver pronto, exibe e revela o texto
-      if (frameIdx === 0 && loadedCount === 1) {
+      // Assim que o frame 0 estiver pronto, revela a interface
+      // (usa flag para garantir que só acontece uma vez, independente da ordem)
+      if (frameIdx === 0 && !heroRevealed) {
+        heroRevealed = true;
         resizeCanvas();
         drawFrame(0);
+        // Esconde o overlay imediatamente — não espera todos os 240 frames
+        hideLoading();
+        // Revela o hero text
         heroText?.classList.add('visible');
-        hidePlaceholder();
         scheduleFrameUpdate();
       }
 
       // Redispara update para preencher frames que faltavam
       scheduleFrameUpdate();
-
-      // Esconde loading quando todos carregarem
-      if (loadedCount === TOTAL_FRAMES) {
-        hideLoading();
-      }
 
       loadNext();
     };
@@ -182,7 +183,7 @@ function preloadFrames() {
 /* ── PLACEHOLDER / LOADING UI ────────────────────────────── */
 function showPlaceholder() {
   if (!ctx || !canvas) return;
-  canvas.width  = window.innerWidth;
+  canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   grad.addColorStop(0, '#1B4332');
@@ -225,13 +226,13 @@ function onScroll() {
 /* ── CONTADORES ANIMADOS ─────────────────────────────────── */
 function animateCounters() {
   document.querySelectorAll('.stat-number').forEach(el => {
-    const text  = el.dataset.value || el.textContent.trim();
+    const text = el.dataset.value || el.textContent.trim();
     el.dataset.value = text;
     const match = text.match(/([+]?)(\d+)([k%+]?)/);
     if (!match) return;
     const prefix = match[1], end = parseInt(match[2]), suffix = match[3];
-    const start  = performance.now(), dur = 1800;
-    const tick   = (now) => {
+    const start = performance.now(), dur = 1800;
+    const tick = (now) => {
       const p = Math.min((now - start) / dur, 1);
       const e = 1 - Math.pow(2, -10 * p); // easeOutExpo
       el.textContent = prefix + Math.floor(e * end) + suffix;
@@ -277,7 +278,7 @@ backToTopBtn?.addEventListener('click', () => {
 
 /* ── HAMBURGER ───────────────────────────────────────────── */
 const hamburger = document.getElementById('hamburger');
-const navLinks  = document.getElementById('navLinks');
+const navLinks = document.getElementById('navLinks');
 let menuOpen = false;
 hamburger?.addEventListener('click', () => {
   menuOpen = !menuOpen;
